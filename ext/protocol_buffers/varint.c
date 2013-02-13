@@ -40,24 +40,12 @@ static VALUE varint_decode(VALUE module, VALUE io)
     }
 }
 
-void Init_ruby_protobufs()
+void Init_varint()
 {
-    Protobuf = rb_define_module("Protobuf");
+    Protobuf = rb_define_module("ProtocolBuffers");
     Varint = rb_define_module_under(Protobuf, "Varint");
 
-    VALUE zero = INT2FIX(0);
-    VALUE test_io = rb_class_new_instance(1, &zero,
-            rb_const_get(rb_cObject, rb_intern("IO")));
-
-    /* hackish way to support both 1.8.6 and 1.8.7+ */
     getbyte = rb_intern("getbyte");
-    if (!rb_respond_to(test_io, getbyte)) {
-        getbyte = rb_intern("getc");
-    }
-
-    /* TODO: check the api docs -- what happens to test_io here?
-     * does it just leak? */
-
     putbyte = rb_intern("putc");
 
     rb_define_module_function(Varint, "encode", varint_encode, 2);

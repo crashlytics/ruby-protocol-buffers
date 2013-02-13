@@ -1,27 +1,28 @@
 # -*- encoding: utf-8 -*-
-$:.push File.expand_path("../lib", __FILE__)
-require "protocol_buffers"
+lib = File.expand_path('../lib', __FILE__)
+$LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
+require "protocol_buffers/version"
 
-Gem::Specification.new do |s|
-  s.name        = "ruby-protocol-buffers"
-  s.version     = ProtocolBuffers::VERSION
-  s.platform    = Gem::Platform::RUBY
-  s.authors     = ["Brian Palmer", "Rob Marable", "Paulo Luis Franchini Casaretto"]
-  s.email       = ["brian@codekitchen.net"]
-  s.homepage    = "https://github.com/mozy/ruby-protocol-buffers"
-  s.summary     = %{Ruby compiler and runtime for the google protocol buffers library.}
+Gem::Specification.new do |gem|
+  gem.name          = "ruby-protocol-buffers"
+  gem.version       = ProtocolBuffers::VERSION
+  gem.authors       = ["Brian Palmer", "Rob Marable", "Paulo Luis Franchini Casaretto"]
+  gem.email         = ["brian@codekitchen.net"]
+  gem.summary       = %{Ruby compiler and runtime for the google protocol buffers library.}
+  gem.homepage      = "https://github.com/mozy/ruby-protocol-buffers"
 
-  s.files         = `git ls-files`.split("\n")
-  s.test_files    = `git ls-files -- {test,spec,features}/*`.split("\n")
-  s.executables   = `git ls-files -- bin/*`.split("\n").map{ |f| File.basename(f) }
-  s.require_paths = ["lib"]
+  gem.files         = `git ls-files`.split($/)
+  gem.executables   = gem.files.grep(%r{^bin/}).map{ |f| File.basename(f) }
+  gem.test_files    = gem.files.grep(%r{^(test|spec|features)/})
+  gem.require_paths = ["lib"]
 
-  s.extra_rdoc_files << "Changelog.md"
+  gem.extra_rdoc_files << "Changelog.md"
 
-  s.add_development_dependency "autotest-standalone"
-  s.add_development_dependency "autotest-growl"
-  s.add_development_dependency "simplecov"
-  s.add_development_dependency "rake"
-  s.add_development_dependency "rspec", "~> 2.5"
-  s.add_development_dependency "yard"
+  gem.add_development_dependency "autotest-standalone"
+  gem.add_development_dependency "autotest-growl"
+  gem.add_development_dependency "rake"
+  gem.add_development_dependency "rake-compiler"
+  gem.add_development_dependency "simplecov"
+  gem.add_development_dependency "rspec", "~> 2.5"
+  gem.add_development_dependency "yard"
 end

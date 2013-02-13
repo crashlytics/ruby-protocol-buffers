@@ -1,6 +1,10 @@
-require 'protocol_buffers'
-
+require 'rubygems'
 require 'rspec'
+
+require 'simplecov'
+SimpleCov.start
+
+require 'protocol_buffers'
 
 # These are a couple of classes used by tests
 class SignedIntTest < ::ProtocolBuffers::Message
@@ -43,7 +47,7 @@ def validate_pbr(klass, value, suppress_output = false)
     puts "  encoded length: #{encoded_string.length}"
     puts "  parsing encoded_string"
   end
-  
+
   decode_pbr = nil;
   begin
     decode_pbr = klass.parse encoded_string
@@ -55,7 +59,7 @@ def validate_pbr(klass, value, suppress_output = false)
     end
     return false
   end
-  
+
   if decode_pbr
     unless suppress_output
       puts "  decoded value: #{decode_pbr.test_member}"
@@ -70,7 +74,7 @@ def validate_pbr(klass, value, suppress_output = false)
         puts "  decoded value inspect : #{decode_pbr.test_member.inspect}"
         puts "  passed value inspect  : #{value.inspect}"
       end
-      
+
       # Ruby 1.8 Strings don't have encodings
       if decode_pbr.test_member.respond_to?("encoding")
         unless suppress_output
@@ -79,11 +83,11 @@ def validate_pbr(klass, value, suppress_output = false)
         end
       end
     end
-    
+
     unless suppress_output
       puts "  GOOD COMPARE" if decode_pbr.test_member == value
     end
-    
+
     decode_pbr.test_member == value
   end
 end
