@@ -6,8 +6,8 @@ require "protocol_buffers/version"
 Gem::Specification.new do |gem|
   gem.name          = "ruby-protocol-buffers"
   gem.version       = ProtocolBuffers::VERSION
-  gem.authors       = ["Brian Palmer", "Rob Marable", "Paulo Luis Franchini Casaretto"]
-  gem.email         = ["brian@codekitchen.net"]
+  gem.authors       = ["Brian Palmer", "Beneidkt Böhm", "Rob Marable", "Paulo Luis Franchini Casaretto"]
+  gem.email         = ["brian@codekitchen.net", "bb@xnull.de"]
   gem.summary       = %{Ruby compiler and runtime for the google protocol buffers library.}
   gem.homepage      = "https://github.com/mozy/ruby-protocol-buffers"
 
