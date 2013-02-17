@@ -23,6 +23,10 @@ module ProtocolBuffers
       shift = 0
       loop do
         raise(DecodeError, "too many bytes when decoding varint") if shift >= 64
+        # this works in 1.8.7 and 1.9.x, but for different reasons
+        # in 1.8.7 io.getc returns the int representation of the char, and .ord is a noop. String#ord doesn't exist.
+        # in 1.9.3 io.getc returns a String, and .ord returns the int representation of the first char.
+        # this fails in 1.8.6, which is no longer supported by ruby-protocol-buffers.
         byte = io.getc.ord
         int_val |= (byte & 0b0111_1111) << shift
         shift += 7
@@ -61,12 +65,4 @@ rescue LoadError
   class ProtocolBuffers::Varint
     extend ::ProtocolBuffers::VarintPure
   end
-end
-
-# fix for 1.8 <-> 1.9 compat
-unless 'a'.respond_to?(:ord)
-  class String; def ord; self[0]; end; end
-end
-unless (1).respond_to?(:ord)
-  class Fixnum; def ord; self; end; end
 end
