@@ -29,6 +29,11 @@ If you want to compile .proto files to ruby, you'll need `protoc` version >= 2.2
 installed in the environment where you will be compiling them.
 You do not need `protoc` installed to use the generated `.pb.rb` files.
 
+For greater performance, consider installing the varint gem as well.
+This optional gem builds a small C extension to make parsing protocol buffers
+faster. If your application uses a Gemfile, add varint to the Gemfile
+alongside ruby-protocol-buffers.
+
 ## Example
 
 Given the file test.proto:

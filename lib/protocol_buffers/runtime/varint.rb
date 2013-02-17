@@ -58,7 +58,6 @@ begin
     extend ::Varint
   end
 rescue LoadError
-  STDERR.puts "Notice: C extension varint not loaded. For optimal performance consider installing the varint gem."
   class ProtocolBuffers::Varint
     extend ::ProtocolBuffers::VarintPure
   end
