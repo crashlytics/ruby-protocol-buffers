@@ -52,5 +52,12 @@ module ProtocolBuffers
       (opts[:include_dirs] ||= []) << File.dirname(tempfile.path)
       compile_and_load(tempfile.path, opts)
     end
+
+    def self.available?
+      version = `protoc --version`.match(/[\d\.]+/)
+      version && version[0] >= "2.2"
+    rescue Errno::ENOENT
+      false
+    end
   end
 end

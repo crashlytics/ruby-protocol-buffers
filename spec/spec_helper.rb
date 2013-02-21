@@ -98,5 +98,18 @@ def to_hex_string ss
   yy.join(' ')
 end
 
+def has_compiler?
+  ProtocolBuffers::Compiler.available?
+end
+
 RSpec.configure do |config|
+  config.after(:each) do
+    # clear our namespaces
+    Object.send(:remove_const, :Simple) if defined?(Simple)
+    Object.send(:remove_const, :Featureful) if defined?(Featureful)
+    Object.send(:remove_const, :Foo) if defined?(Foo)
+    Object.send(:remove_const, :TehUnknown) if defined?(TehUnknown)
+    Object.send(:remove_const, :TehUnknown2) if defined?(TehUnknown2)
+    Object.send(:remove_const, :TehUnknown3) if defined?(TehUnknown3)
+  end
 end
