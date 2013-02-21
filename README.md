@@ -1,5 +1,7 @@
 # Ruby Protocol Buffers
 
+[![Build Status](https://travis-ci.org/codekitchen/ruby-protocol-buffers.png?branch=master)](https://travis-ci.org/codekitchen/ruby-protocol-buffers)
+
 Protocol Buffers are a way of encoding structured data in an efficient yet
 extensible format. Google uses Protocol Buffers for almost all of its internal
 RPC protocols and file formats.
