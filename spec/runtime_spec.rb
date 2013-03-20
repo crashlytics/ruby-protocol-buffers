@@ -614,4 +614,15 @@ describe ProtocolBuffers, "runtime" do
     end
   end
 
+  it "should work with IO streams not set to binary" do
+    pending("requires encoding support") unless "".respond_to?(:encoding)
+    class IntMsg < ProtocolBuffers::Message
+      required :int32, :i, 1
+    end
+    sio = StringIO.new("\b\xc3\x911")
+    sio.set_encoding('utf-8')
+    msg = IntMsg.parse(sio)
+    msg.i.should == 805059
+  end
+
 end
