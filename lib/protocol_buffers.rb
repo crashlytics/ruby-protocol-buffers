@@ -1,5 +1,5 @@
 module ProtocolBuffers
-  VERSION = File.read(File.join(File.dirname(__FILE__), "..", "VERSION")).chomp
+  VERSION = '1.2.3'
 
   require 'stringio'
   # for 1.9.2 compatibility
