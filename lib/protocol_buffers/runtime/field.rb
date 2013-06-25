@@ -305,7 +305,10 @@ module ProtocolBuffers
 
       def check_value(value)
         if HAS_ENCODING
-          value.dup.force_encoding(Encoding::UTF_8).valid_encoding? || raise(ArgumentError, "string value is not valid utf-8")
+          # Removed `|| raise(ArgumentError, "string value is not valid utf-8")` to mimic the behavior
+          # of the older gem versions. The || condition raises on session fields that are
+          # incorrectly encoded from the sdk (custom logs), therefore we simply return true/false.
+          value.dup.force_encoding(Encoding::UTF_8).valid_encoding?
         end
       end
 

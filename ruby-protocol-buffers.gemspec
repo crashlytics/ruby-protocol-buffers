@@ -4,7 +4,7 @@ $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 require "protocol_buffers/version"
 
 Gem::Specification.new do |gem|
-  gem.name          = "ruby-protocol-buffers"
+  gem.name          = "crashlytics-ruby-protocol-buffers"
   gem.version       = ProtocolBuffers::VERSION
   gem.authors       = ["Brian Palmer", "Benedikt Böhm", "Rob Marable", "Paulo Luis Franchini Casaretto"]
   gem.email         = ["brian@codekitchen.net", "bb@xnull.de"]
