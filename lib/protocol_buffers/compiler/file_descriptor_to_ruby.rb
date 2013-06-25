@@ -8,7 +8,7 @@ class FileDescriptorToRuby < Struct.new(:descriptor)
 
   def initialize(descriptor)
     super
-    @package_modules = descriptor.package_ ? descriptor.package_.split('.') : []
+    @package_modules = descriptor.package ? descriptor.package.split('.') : []
     @ns = []
   end
 
@@ -24,7 +24,13 @@ require 'protocol_buffers'
 HEADER
 
     descriptor.dependency.each do |dep|
-      path = File.basename(dep, ".proto") + ".pb"
+      dir      = File.dirname(dep)
+      filename = File.basename(dep, ".proto") + ".pb"
+      path = if dir == '.'
+        filename
+      else
+        File.join(dir, filename)
+      end
       @io.write("begin; require '#{path}'; rescue LoadError; end\n")
     end
     @io.write("\n") unless descriptor.dependency.empty?
@@ -123,14 +129,20 @@ HEADER
       message.field.each do |field|
         typename = field_typename(field)
         fieldline = %{#{LABEL_MAPPING[field.label]} #{typename}, :#{field.name}, #{field.number}}
+        if field.type == TYPE_GROUP
+          fieldline << %{, :group => true}
+        end
         if field.default_value && field.default_value != ""
           fieldline << %{, :default => #{default_value(field)}}
         end
+
+        # Dont need to check for 'repeated' attribute or type, protoc will take care of this.
+        if field.options.packed
+          fieldline << %{, :packed => true }
+        end
+
         line fieldline
       end
-
-      line
-      line "gen_methods! # new fields ignored after this point"
     end
     line
   end
