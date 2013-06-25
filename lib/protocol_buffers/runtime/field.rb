@@ -97,6 +97,7 @@ module ProtocolBuffers
     attr_reader :otype, :name, :tag
 
     def repeated?; otype == :repeated end
+    def packed?; repeated? && @opts[:packed] end
 
     def self.create(sender, otype, type, name, tag, opts = {})
       if type.is_a?(Symbol)
@@ -106,7 +107,11 @@ module ProtocolBuffers
       elsif type.ancestors.include?(ProtocolBuffers::Enum)
         field = Field::EnumField.new(type, otype, name, tag, opts)
       elsif type.ancestors.include?(ProtocolBuffers::Message)
-        field = Field::MessageField.new(type, otype, name, tag, opts)
+        if opts[:group]
+          field = Field::GroupField.new(type, otype, name, tag, opts)
+        else
+          field = Field::MessageField.new(type, otype, name, tag, opts)
+        end
       else
         raise("Type not found: #{type}")
       end
@@ -120,22 +125,40 @@ module ProtocolBuffers
       @opts = opts.dup
     end
 
-    def add_methods_to(klass)
-      klass.class_eval <<-EOF, __FILE__, __LINE__+1
-        attr_reader :#{name}
-      EOF
+    def add_reader_to(klass)
+      if repeated?
+        klass.class_eval <<-EOF, __FILE__, __LINE__+1
+        def #{name}
+          unless @#{name}
+            @#{name} = RepeatedField.new(fields[#{tag}])
+          end
+          @#{name}
+        end
+        EOF
+      else
+        klass.class_eval <<-EOF, __FILE__, __LINE__+1
+        def #{name}
+          if @set_fields[#{tag}] == nil
+            # first access of this field, generate it
+            initialize_field(#{tag})
+          end
+          @#{name}
+        end
+        EOF
+      end
+    end
+
+    def add_writer_to(klass)
       if repeated?
         klass.class_eval <<-EOF, __FILE__, __LINE__+1
           def #{name}=(value)
             if value.nil?
-              @#{name}.clear
+              #{name}.clear
             else
-              @#{name}.clear
+              #{name}.clear
               value.each { |i| @#{name}.push i }
             end
           end
-
-          def has_#{name}?; true; end
         EOF
       else
         klass.class_eval <<-EOF, __FILE__, __LINE__+1
@@ -154,7 +177,23 @@ module ProtocolBuffers
               end
             end
           end
+        EOF
+      end
+    end
 
+    def add_methods_to(klass)
+      add_reader_to(klass)
+      add_writer_to(klass)
+
+      if repeated?
+        # repeated fields are always "set"
+        klass.initial_set_fields[tag] = true
+
+        klass.class_eval <<-EOF, __FILE__, __LINE__+1
+          def has_#{name}?; true; end
+        EOF
+      else
+        klass.class_eval <<-EOF, __FILE__, __LINE__+1
           def has_#{name}?
             value_for_tag?(#{tag})
           end
@@ -202,9 +241,11 @@ module ProtocolBuffers
         def wire_type
           WireTypes::LENGTH_DELIMITED
         end
+      end
 
-        def deserialize(value)
-          value.read
+      module GROUP
+        def wire_type
+          WireTypes::START_GROUP
         end
       end
 
@@ -253,27 +294,40 @@ module ProtocolBuffers
       def default_value
         @default_value || @default_value = (@opts[:default] || "").freeze
       end
+
+      def deserialize(value)
+        value.read
+      end
     end
 
     class StringField < BytesField
-      # TODO: UTF-8 validation
-      # Make sure to handle this weird case: strings are mutable, so a UTF-8
-      # valid string could be assigned to a repeated field and then modified in
-      # place later on to not be valid UTF-8 anymore.
-      #
-      # Maybe we just punt on this except in Ruby 1.9 where we can rely on the
-      # language ensuring the string is always UTF-8?
+      HAS_ENCODING = (''.respond_to?(:valid_encoding?) && ''.respond_to?(:force_encoding))
+
+      def check_value(value)
+        if HAS_ENCODING
+          # Removed `|| raise(ArgumentError, "string value is not valid utf-8")` to mimic the behavior
+          # of the older gem versions. The || condition raises on session fields that are
+          # incorrectly encoded from the sdk (custom logs), therefore we simply return true/false.
+          value.dup.force_encoding(Encoding::UTF_8).valid_encoding?
+        end
+      end
+
+      def serialize(value)
+        check_value(value)
+        if HAS_ENCODING
+          value.dup.force_encoding(Encoding::UTF_8)
+        else
+          value
+        end
+      end
 
       def deserialize(value)
-        # To get bytes, the value was being read as ASCII.  Ruby 1.9 stores an encoding
-        # with its strings, and they were getting returned with Encoding ASCII-8BIT.
-        # Protobuffers are supposed to only return UTF-8 strings.  This attempts to
-        # force the encoding to UTF-8 if on Ruby 1.9 (force_encoding is defined on String).
         read_value = value.read.to_s
-        if read_value.respond_to?("force_encoding")
-          read_value.force_encoding("UTF-8")
+        if HAS_ENCODING
+          read_value.force_encoding(Encoding::UTF_8)
+        else
+          read_value
         end
-        read_value
       end
     end
 
@@ -531,9 +585,7 @@ module ProtocolBuffers
       end
     end
 
-    class MessageField < Field
-      include WireFormats::LENGTH_DELIMITED
-      
+    class AggregateField < Field
       attr_reader :proxy_class
 
       def initialize(proxy_class, otype, name, tag, opts = {})
@@ -561,5 +613,12 @@ module ProtocolBuffers
       end
     end
 
+    class MessageField < AggregateField
+      include WireFormats::LENGTH_DELIMITED
+    end
+
+    class GroupField < AggregateField
+      include WireFormats::GROUP
+    end
   end
 end

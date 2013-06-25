@@ -1,3 +1,5 @@
+# encoding: binary
+
 require File.expand_path(File.dirname(__FILE__) + '/spec_helper')
 
 require 'stringio'
@@ -36,13 +38,63 @@ describe ProtocolBuffers, "fields" do
     proc { int64.check_value(int64.deserialize(val2)) }.should_not raise_error
   end
 
-  it "verifies UTF-8 for string fields" do
-    pending("do UTF-8 validation") do
-      s1 = mkfield(:StringField)
-      proc { s1.check_valid("hello") }.should_not raise_error()
-      proc { s1.check_valid("\xff\xff") }.should raise_error(ArgumentError)
-      b1 = mkfield(:BytesField)
-      proc { b1.check_valid("\xff\xff") }.should_not raise_error()
+  context "UTF-8 encoding of length-delimited fields" do
+    if RUBY_VERSION < "1.9"
+      pending "UTF-8 validation only happens in ruby 1.9+"
+    else
+
+      before :each do
+        @good_utf   = "\xc2\xa1hola\x21"
+        @bad_utf    = "\xc2"
+        @good_ascii = "!hola!".force_encoding("us-ascii")
+
+        @good_utf_io   = proc { StringIO.new(@good_utf) }
+        @bad_utf_io    = proc { StringIO.new(@bad_utf) }
+        @good_ascii_io = proc { StringIO.new(@good_ascii) }
+
+        @s = mkfield(:StringField)
+        @b = mkfield(:BytesField)
+      end
+
+      context "string fields" do
+
+        it "forces UTF-8 on serializing" do
+          pending 'Not enforcing raise when not UTF_8 invalid'
+          @s.serialize(@good_utf).encoding.should == Encoding::UTF_8
+          proc { @s.check_valid(@s.serialize(@good_utf)) }.should_not raise_error()
+
+          @s.serialize(@good_ascii).encoding.should == Encoding::UTF_8
+          proc { @s.check_valid(@s.serialize(@good_ascii)) }.should_not raise_error()
+
+          proc { @s.serialize(@bad_utf) }.should raise_error(ArgumentError)
+        end
+
+        it "forces UTF-8 on deserializing" do
+          pending 'Not enforcing raise when not UTF_8 invalid'
+          @s.deserialize(@good_utf_io[]).encoding.should == Encoding::UTF_8
+          proc { @s.check_valid(@s.deserialize(@good_utf_io[])) }.should_not raise_error()
+
+          @s.deserialize(@good_ascii_io[]).encoding.should == Encoding::UTF_8
+          proc { @s.check_valid(@s.deserialize(@good_ascii_io[])) }.should_not raise_error()
+
+          @s.deserialize(@bad_utf_io[]).encoding.should == Encoding::UTF_8
+          proc { @s.check_valid(@s.deserialize(@bad_utf_io[])) }.should raise_error(ArgumentError)
+        end
+      end
+
+      context "byte fields" do
+
+        it "does not force UTF-8 on deserializing" do
+          @b.deserialize(@good_utf_io[]).encoding.should == Encoding::BINARY
+          proc { @b.check_valid(@b.deserialize(@good_utf_io[])) }.should_not raise_error()
+
+          @b.deserialize(@good_ascii_io[]).encoding.should == Encoding.find("us-ascii")
+          proc { @b.check_valid(@b.deserialize(@good_ascii_io[])) }.should_not raise_error()
+
+          @b.deserialize(@bad_utf_io[]).encoding.should == Encoding::BINARY
+          proc { @b.check_valid(@b.deserialize(@bad_utf_io[])) }.should_not raise_error()
+        end
+      end
     end
   end
 

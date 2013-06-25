@@ -1,5 +1,4 @@
 class LimitedIO < Struct.new(:parent, :limit)
-
   def read(length = nil, buffer = nil)
     length = length || limit
     length = limit if length > limit
@@ -23,11 +22,4 @@ class LimitedIO < Struct.new(:parent, :limit)
     self.limit -= 1
     parent.getbyte
   end
-
-  def getc
-    return nil if limit == 0
-    self.limit -= 1
-    parent.getc
-  end
-
 end

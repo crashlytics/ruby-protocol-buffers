@@ -12,9 +12,10 @@ module ProtocolBuffers
         tag_int = Varint.decode(io)
         tag = tag_int >> 3
         wire_type = tag_int & 0b111
+        break if wire_type == 4
         field = fields[tag]
 
-        if field && wire_type != field.wire_type
+        if field && ( !( field.packed? || wire_type == field.wire_type ) || ( field.packed? && wire_type != 2 ) )
           raise(DecodeError, "incorrect wire type for tag: #{field.tag}, expected #{field.wire_type} but got #{wire_type}\n#{field.inspect}")
         end
 
@@ -31,15 +32,33 @@ module ProtocolBuffers
           value = LimitedIO.new(io, length)
         when 5 # FIXED32
           value = io.read(4)
-        when 3, 4 # deprecated START_GROUP/END_GROUP types
-          raise(DecodeError, "groups are deprecated and unsupported")
+        when 3 # START_GROUP
+          value = io
+        when 4 # END_GROUP
+          break
         else
           raise(DecodeError, "unknown wire type: #{wire_type}")
         end
 
         if field
           begin
-            deserialized = field.deserialize(value)
+            if field.packed?
+              deserialized = []
+              until value.eof?
+
+                decoded = case field.wire_type
+                  when 0 # VARINT
+                    Varint.decode(value)
+                  when 1 # FIXED64
+                    value.read(8)
+                  when 5 # FIXED32
+                    value.read(4)
+                  end
+                deserialized << field.deserialize(decoded)
+              end
+            else
+              deserialized = field.deserialize(value)
+            end
             # merge_field handles repeated field logic
             message.merge_field(tag, deserialized, field)
           rescue ArgumentError

@@ -209,7 +209,7 @@ module ProtocolBuffers
   #   module Foo
   #     VALUE_A = 1
   #     VALUE_B = 5
-  #     VALUE_C 1234
+  #     VALUE_C = 1234
   #   end
   #
   # An exception will be thrown if an enum field is assigned a value not in the
@@ -232,22 +232,7 @@ module ProtocolBuffers
     #   message = MyMessageClass.new
     #   message.attributes = attributes
     def initialize(attributes = {})
-      @set_fields = []
-
-      fields.each do |tag, field|
-        if field.repeated?
-          self.instance_variable_set("@#{field.name}", RepeatedField.new(field))
-          @set_fields[tag] = true # repeated fields are always "set"
-        else
-          value = field.default_value
-          self.__send__("#{field.name}=", value)
-          @set_fields[tag] = false
-          if field.class == Field::MessageField
-            value.notify_on_change(self, tag)
-          end
-        end
-      end
-
+      @set_fields = self.class.initial_set_fields.dup
       self.attributes = attributes
     end
 
@@ -354,6 +339,10 @@ module ProtocolBuffers
       @fields || @fields = {}
     end
 
+    def self.initial_set_fields
+      @set_fields ||= []
+    end
+
     # Returns a hash of { tag => ProtocolBuffers::Field }
     def fields
       self.class.fields
@@ -398,7 +387,12 @@ module ProtocolBuffers
       ret = ProtocolBuffers.bin_sio
       ret << "#<#{self.class.name}"
       fields.each do |tag, field|
-        ret << " #{field.name}=#{field.inspect_value(self.__send__(field.name))}"
+        if value_for_tag?(tag)
+          value = field.inspect_value(self.__send__(field.name))
+        else
+          value = "<unset>"
+        end
+        ret << " #{field.name}=#{value}"
       end
       ret << ">"
       return ret.string
@@ -418,7 +412,6 @@ module ProtocolBuffers
     end
 
     def self.define_field(otype, type, name, tag, opts = {}) # :NODOC:
-      raise("gen_methods! already called, cannot add more fields") if @methods_generated
       type = type.is_a?(Module) ? type : type.to_sym
       name = name.to_sym
       tag  = tag.to_i
@@ -462,11 +455,13 @@ module ProtocolBuffers
       return true unless @has_required_field
 
       fields.each do |tag, field|
-        if field.otype == :required && !message.value_for_tag?(tag)
-          return false unless raise_exception
-          raise(ProtocolBuffers::EncodeError.new(field), "Required field '#{field.name}' is invalid")
-        end
+        next if field.otype != :required
+        next if message.value_for_tag?(tag) && (field.class != Field::MessageField || message.value_for_tag(tag).valid?)
+        return false unless raise_exception
+        raise(ProtocolBuffers::EncodeError.new(field), "Required field '#{field.name}' is invalid")
       end
+
+      true
     end
 
     def validate!
@@ -492,14 +487,21 @@ module ProtocolBuffers
       (@unknown_fields || []).size
     end
 
-    # Generate the initialize method using reflection, to improve speed. This is
-    # called by the generated .pb.rb code, it's not necessary to call this
-    # method directly.
+    # left in for compatibility with previously created .pb.rb files -- no longer used
     def self.gen_methods! # :NODOC:
       @methods_generated = true
-      # these generated methods have gone away for now -- the infrastructure has
-      # been left in place, since they'll probably make their way back in at
-      # some point.
+    end
+
+    protected
+
+    def initialize_field(tag)
+      field = fields[tag]
+      new_value = field.default_value
+      self.instance_variable_set("@#{field.name}", new_value)
+      if field.kind_of? Field::AggregateField
+        new_value.notify_on_change(self, tag)
+      end
+      @set_fields[tag] = false
     end
 
   end

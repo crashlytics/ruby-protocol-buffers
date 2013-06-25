@@ -1,7 +1,6 @@
-module ProtocolBuffers
-  VERSION = '1.2.3'
+require 'stringio'
 
-  require 'stringio'
+module ProtocolBuffers
   # for 1.9.2 compatibility
   def self.bin_sio(*args)
     sio = StringIO.new(*args)
@@ -10,4 +9,5 @@ module ProtocolBuffers
   end
 end
 
+require 'protocol_buffers/version'
 require 'protocol_buffers/runtime/message'
