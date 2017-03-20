@@ -1,5 +1,3 @@
-require 'protocol_buffers/limited_io'
-
 module ProtocolBuffers
 
   class DecodeError < StandardError; end
@@ -29,7 +27,7 @@ module ProtocolBuffers
           value = io.read(8)
         when 2 # LENGTH_DELIMITED
           length = Varint.decode(io)
-          value = LimitedIO.new(io, length)
+          value = io.read(length)
         when 5 # FIXED32
           value = io.read(4)
         when 3 # START_GROUP
@@ -44,8 +42,9 @@ module ProtocolBuffers
           begin
             if field.packed?
               deserialized = []
-              until value.eof?
+              value = StringIO.new(value)
 
+              until value.eof?
                 decoded = case field.wire_type
                   when 0 # VARINT
                     Varint.decode(value)
@@ -73,10 +72,6 @@ module ProtocolBuffers
 
         unless field
           # ignore unknown fields, pass them on when re-serializing this message
-
-          # special handling -- if it's a LENGTH_DELIMITED field, we need to
-          # actually read the IO so that extra bytes aren't left on the wire
-          value = value.read if wire_type == 2 # LENGTH_DELIMITED
 
           message.remember_unknown_field(tag_int, value)
         end

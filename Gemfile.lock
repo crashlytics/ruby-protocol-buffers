@@ -1,15 +1,18 @@
 PATH
   remote: .
   specs:
-    ruby-protocol-buffers (1.2.3)
+    crashlytics-ruby-protocol-buffers (1.5.0)
 
 GEM
-  remote: http://rubygems.org/
+  remote: https://rubygems.org/
   specs:
     autotest-growl (0.2.16)
     autotest-standalone (4.5.11)
     diff-lcs (1.2.4)
     multi_json (1.7.7)
+    rake (12.0.0)
+    rake-compiler (1.0.3)
+      rake
     rspec (2.13.0)
       rspec-core (~> 2.13.0)
       rspec-expectations (~> 2.13.0)
@@ -22,6 +25,7 @@ GEM
       multi_json (~> 1.0)
       simplecov-html (~> 0.7.1)
     simplecov-html (0.7.1)
+    varint (0.1.1)
     yard (0.8.6.1)
 
 PLATFORMS
@@ -30,7 +34,13 @@ PLATFORMS
 DEPENDENCIES
   autotest-growl
   autotest-standalone
+  crashlytics-ruby-protocol-buffers!
+  rake
+  rake-compiler
   rspec (~> 2.5)
-  ruby-protocol-buffers!
   simplecov
+  varint
   yard
+
+BUNDLED WITH
+   1.14.3

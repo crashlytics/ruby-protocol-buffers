@@ -1,7 +1,6 @@
 require 'protocol_buffers'
 require 'protocol_buffers/runtime/enum'
 require 'protocol_buffers/runtime/varint'
-require 'protocol_buffers/limited_io'
 
 module ProtocolBuffers
 
@@ -96,8 +95,11 @@ module ProtocolBuffers
   class Field # :nodoc: all
     attr_reader :otype, :name, :tag
 
-    def repeated?; otype == :repeated end
-    def packed?; repeated? && @opts[:packed] end
+    def repeated?; @repeated; end
+
+    def packed?; @packed; end
+
+    def required?; @required; end
 
     def self.create(sender, otype, type, name, tag, opts = {})
       if type.is_a?(Symbol)
@@ -123,6 +125,9 @@ module ProtocolBuffers
       @name = name
       @tag = tag
       @opts = opts.dup
+      @repeated = otype == :repeated
+      @required = otype == :required
+      @packed = @repeated && opts[:packed]
     end
 
     def add_reader_to(klass)
@@ -296,7 +301,7 @@ module ProtocolBuffers
       end
 
       def deserialize(value)
-        value.read
+        value
       end
     end
 
@@ -322,11 +327,10 @@ module ProtocolBuffers
       end
 
       def deserialize(value)
-        read_value = value.read.to_s
         if HAS_ENCODING
-          read_value.force_encoding(Encoding::UTF_8)
+          value.dup.force_encoding(Encoding::UTF_8)
         else
-          read_value
+          value
         end
       end
     end
